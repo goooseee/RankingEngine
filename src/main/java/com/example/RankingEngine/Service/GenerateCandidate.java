@@ -1,13 +1,12 @@
-//package com.example.RankingEngine.Service;
-//
-//import java.util.List;
-//
-//import com.example.RecomendationSystem.Entity.Movie;
-//import com.example.RecomendationSystem.Entity.User;
-//import com.example.RecomendationSystem.Repository.MovieRepository;
-//
-////public interface GenerateCandidate {
-////	
-////	public List<Movie> getCandidate(User user);
-////	
-////}
+package com.example.RankingEngine.Service;
+
+import java.util.List;
+
+import com.example.RankingEngine.Entity.Movie;
+
+
+public interface GenerateCandidate {
+	
+	public List<Movie> getCandidate(Long userId);
+	
+}

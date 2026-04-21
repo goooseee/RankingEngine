@@ -7,6 +7,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ScoringRequest {
-	private List<UserWatchedHistory> history;
-	private UserRecommendationProfile profile;
+	
 }

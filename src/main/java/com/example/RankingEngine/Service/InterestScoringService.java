@@ -6,18 +6,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.example.RankingEngine.DTO.MovieDTO;
 import com.example.RankingEngine.DTO.ScoringWeightsProperties;
-import com.example.RankingEngine.DTO.UserPreferenceDTO;
-import com.example.RankingEngine.DTO.UserRecommendationProfile;
-import com.example.RankingEngine.DTO.UserWatchedHistory;
 import com.example.RankingEngine.DTO.Enum.CountStatus;
 import com.example.RankingEngine.DTO.Enum.Reaction;
 import com.example.RankingEngine.DTO.Enum.RecentyType;
 import com.example.RankingEngine.DTO.Enum.Type;
+import com.example.RankingEngine.Entity.Movie;
+import com.example.RankingEngine.Entity.UserPreference;
+import com.example.RankingEngine.Entity.UserWatchedMovie;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,28 +28,27 @@ public class InterestScoringService {
 	
 	private final ScoringWeightsProperties properties;
 
-	public List<UserPreferenceDTO> calculateInterest(UserRecommendationProfile profile,
-			List<UserWatchedHistory> history) {
-//		System.out.println( "Interest Scoring: " );
-		System.out.println( profile.getGenreWeights() );
-//		System.out.println( history.get( 0 ).toString());
+	public List<UserPreference> calculateInterest(List<UserPreference> preferences,
+			long userId,
+			List<UserWatchedMovie> history) {
 		long startTime = System.currentTimeMillis();
-		log.atDebug().log( "Start calc interest for user = {}", profile.getUserId() );
-		Map<Type, UserPreferenceDTO> mapType = profile.getGenreWeights();
+		log.atDebug().log( "Start calc interest for user = {}", userId );
+		Map<Type, UserPreference> mapType = preferences.stream()
+				.collect( Collectors.toMap( UserPreference::getType, p->p ) );
 		if(mapType == null) {
 			mapType = new HashMap<>();
 		}
 		int proceed = 0;
 		
-		for(UserWatchedHistory watchedHistory : history) {
+		for(UserWatchedMovie watchedHistory : history) {
 			
 			if(watchedHistory.getStatus()!=CountStatus.Count) {
 			double weight = calculationContribution( watchedHistory );
 			List<Type> types = watchedHistory.getMovie().getType();
 			for(Type type : types) {
 				
-				UserPreferenceDTO userPreference = mapType.computeIfAbsent( type, 
-						t -> create( type, profile.getUserId(), 0.0 ));
+				UserPreference userPreference = mapType.computeIfAbsent( type, 
+						t -> create( type, userId, 0.0 ));
 				
 				updateUserPreference( userPreference, weight );
 				
@@ -59,12 +58,13 @@ public class InterestScoringService {
 			}
 		}
 		log.atDebug().log( "End calc interst proceed new movie {} total preference for user = {} in ms = {}",
-				 proceed, mapType.size(), profile.getUserId(), System.currentTimeMillis()-startTime );
+				 proceed, mapType.size(), userId, System.currentTimeMillis()-startTime );
+		
 		return new ArrayList<>(mapType.values());
 	}
 	
-	private UserPreferenceDTO create(Type type, long user, double weight) {
-		return UserPreferenceDTO
+	private UserPreference create(Type type, long user, double weight) {
+		return UserPreference
 					.builder()
 					.type( type )
 					.userId( user )
@@ -73,12 +73,14 @@ public class InterestScoringService {
 					.build();
 	}
 	
-	private void updateUserPreference (UserPreferenceDTO preference, double weight) {
+	private void updateUserPreference (UserPreference preference, double weight) {
 		preference.setWeight( preference.getWeight() + weight );
 		preference.setLastUpdate( LocalDate.now() );
 	}
 	
-	private double calculationContribution(UserWatchedHistory history) {
+	private double calculationContribution(UserWatchedMovie history) {
+		System.out.println( history.getId() );
+		System.out.println( history.getDurationSeconds() );
 		double weight = getReact(history.getReact())+getDuration(history)+getDate(history.getWhenWatched());
 		double finalWeight = weight*getTimesWatched(history.getTimesWatched());
 		return finalWeight;
@@ -103,8 +105,8 @@ public class InterestScoringService {
 			return RecentyType.morethanmonths;
 	}
 	
-	private double getDuration(UserWatchedHistory history) {
-		MovieDTO movie = history.getMovie();
+	private double getDuration(UserWatchedMovie history) {
+		Movie movie = history.getMovie();
 		double procent = 0.0;
 		if(movie.getDurationOfMovieSeconds()>0) {
 		procent = (double) history.getDurationSeconds()/movie.getDurationOfMovieSeconds();

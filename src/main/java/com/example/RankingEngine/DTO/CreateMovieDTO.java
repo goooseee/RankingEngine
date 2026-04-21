@@ -8,14 +8,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class MovieDTO {
+public class CreateMovieDTO {
 	
-	private String title;
+	private Long movieId;
 	
 	private List<Type> type;
 	
